@@ -22,7 +22,7 @@ async def send_discord_notification(sale):
         },
         "title": f"Chicken #{token_id}",
         "url": f"https://marketplace.skymavis.com/collections/sabong-saga-genesis/{token_id}",
-        "description": f"[View Transaction](https://marketplace.skymavis.com/tx/{sale['transactionHash']})",
+        "description": f"[View Transaction](https://app.roninchain.com/tx/{sale['transactionHash']})",
         "color": 16514353,
         "fields": [
             {"name": "Price", "value": payment_info, "inline": True},
