@@ -23,10 +23,8 @@ async def main():
     while True:
         sales = await fetch_sales()
         new_sales = [sale for sale in sales if sale["transactionHash"] not in cached_sales]
-        new_sales.sort(key=lambda sale: int(sale["blockTime"]), reverse=True)
+        new_sales.sort(key=lambda sale: int(sale["blockNumber"]))
 
-        tasks = []
-        task_count = 0
         for sale in new_sales:
             payment_details = await get_payment_details(sale["transactionHash"])
             if payment_details:
@@ -43,23 +41,22 @@ async def main():
 
                 sale["payment_details"] = payment_details
                 sale["nft_details"] = nft_details
-                tasks.append(send_discord_notification(sale))
 
-                log_message = (f"TokenID: {sale['tokenId']}, "
-                               f"TransactionHash: {sale['transactionHash']}, "
-                               f"Buyer: {sale['to']}, "
-                               f"Seller: {sale['from']}, "
-                               f"DateTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, "
-                               f"Price: {payment_details}")
+                await send_discord_notification(sale)
+
+                log_message = (
+                    f"TokenID: {sale['tokenId']}, "
+                    f"BlockNumber: {sale['blockNumber']}, "
+                    f"TransactionHash: {sale['transactionHash']}, "
+                    f"Buyer: {sale['to']}, "
+                    f"Seller: {sale['from']}, "
+                    f"DateTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, "
+                    f"Price: {payment_details}"
+                )
                 logging.info(log_message)
-                task_count += 1
+                await asyncio.sleep(0.5)
 
-                if task_count % 10 == 0:
-                    await asyncio.sleep(2)
-
-        if tasks:
-            await asyncio.gather(*tasks)
-            cached_sales.extend(sale['transactionHash'] for sale in new_sales)
+                cached_sales.append(sale["transactionHash"])
 
         await save_cache(cached_sales)
         await asyncio.sleep(CHECK_INTERVAL)
