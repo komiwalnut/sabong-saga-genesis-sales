@@ -23,7 +23,7 @@ async def main():
     while True:
         sales = await fetch_sales()
         new_sales = [sale for sale in sales if sale["transactionHash"] not in cached_sales]
-        new_sales.sort(key=lambda sale: sale["blockTime"], reverse=True)
+        new_sales.sort(key=lambda sale: int(sale["blockTime"]), reverse=True)
 
         tasks = []
         task_count = 0
