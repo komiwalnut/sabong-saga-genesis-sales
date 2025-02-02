@@ -169,3 +169,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Cache JSON
+data/sales_cache.json
+
+# PM2 something idk
+ecosystem.config.js
