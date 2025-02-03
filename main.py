@@ -32,6 +32,8 @@ async def main():
 
                 buyer_address = sale["to"]
                 seller_address = sale["from"]
+                sale["buyer"] = buyer_address
+                sale["seller"] = seller_address
 
                 buyer_rns = await check_rns(buyer_address)
                 seller_rns = await check_rns(seller_address)

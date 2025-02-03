@@ -26,8 +26,8 @@ async def send_discord_notification(sale):
         "color": 16514353,
         "fields": [
             {"name": "Price", "value": payment_info, "inline": True},
-            {"name": "Seller", "value": f"[{sale['from']}](https://marketplace.skymavis.com/account/{sale['from']})", "inline": True},
-            {"name": "Buyer", "value": f"[{sale['to']}](https://marketplace.skymavis.com/account/{sale['to']})", "inline": True},
+            {"name": "Seller", "value": f"[{sale['from']}](https://marketplace.skymavis.com/account/{sale['seller']})", "inline": True},
+            {"name": "Buyer", "value": f"[{sale['to']}](https://marketplace.skymavis.com/account/{sale['buyer']})", "inline": True},
         ],
         "thumbnail": {"url": cdn_image},
         "timestamp": datetime.now(timezone.utc).isoformat()
