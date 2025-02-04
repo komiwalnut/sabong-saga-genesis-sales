@@ -10,7 +10,7 @@ from src.payment_details import get_payment_details
 
 CHECK_INTERVAL = 60
 
-logging.basicConfig(filename="sabungan-sales.log", level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+logging.basicConfig(filename="sabungan_sales.log", level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 
 def truncate_address(addr: str, front: int = 6, back: int = 3) -> str:
