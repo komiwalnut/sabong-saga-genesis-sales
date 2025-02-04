@@ -24,4 +24,4 @@ async def save_cache(sales):
     if len(sales) > MAX_CACHE_ENTRIES:
         sales = sales[-MAX_CACHE_ENTRIES:]
     with open(CACHE_FILE, "w") as f:
-        json.dump(sales, f)
+        json.dump(sales, f, indent=4)
