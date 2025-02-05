@@ -24,6 +24,12 @@ Ensure you have the following installed on your Linux system:
    source sabungan-venv/bin/activate
    ```
 
+# Setting Up Environment Variables
+Create a .env file in the project directory and add the following:
+```bash
+DISCORD_WEBHOOK_URL=your_webhook_url_here
+```
+
 # Installing Dependencies
 Once the virtual environment is activated, install the required dependencies from requirements.txt:
    ```bash
