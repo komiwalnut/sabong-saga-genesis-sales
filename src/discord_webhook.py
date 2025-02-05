@@ -13,7 +13,7 @@ async def send_discord_notification(sale):
     amount = payment_details['amount']
     token = payment_details['token']
     usd_value = payment_details['usd_value']
-    payment_info = f"{amount} {token} (~${usd_value})"
+    payment_info = f"{str(float(amount)).rstrip('0').rstrip('.')} {token} (~${str(float(usd_value)).rstrip('0').rstrip('.')})"
 
     embed = {
         "author": {
