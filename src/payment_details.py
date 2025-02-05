@@ -1,4 +1,7 @@
 import aiohttp
+from src.utils import hex_to_decimal, get_token_info, fetch_exchange_rate
+from src.constants import TOKEN_MAPPING
+from src.multi_payment_details import get_multi_payment_details
 
 TOKEN_MAPPING = {
     "0xc99a6a985ed2cac1ef41640596c5a5f9f4e19ef5": ("WETH", 1e18),
@@ -6,29 +9,6 @@ TOKEN_MAPPING = {
     "0x0b7007c13325c48911f73a2dad5fa5dcbf808adc": ("USDC", 1e6),
     "0x1a89ecd466a23e98f07111b0510a2d6c1cd5e400": ("BANANA", 1e18)
 }
-
-
-async def hex_to_decimal(hex_str: str, divisor: float = 1e18) -> float:
-    try:
-        value_int = int(hex_str, 16)
-        return value_int / divisor
-    except Exception as e:
-        print(f"Error converting hex {hex_str}: {e}")
-        return 0.0
-
-
-async def get_token_info(token_address: str) -> (str, float):
-    url = f"https://skynet-api.roninchain.com/ronin/explorer/v2/tokens/{token_address}"
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status == 200:
-                data = await response.json()
-                result = data.get("result", {})
-                symbol = result.get("symbol", "UNKNOWN")
-                decimals = result.get("decimals", 18)
-                divisor = 10 ** decimals
-                return symbol, divisor
-    return "UNKNOWN", 1e18
 
 
 async def fetch_internal_payment(transaction_hash: str) -> (float, str):
@@ -51,7 +31,7 @@ async def fetch_internal_payment(transaction_hash: str) -> (float, str):
             if response.status == 200:
                 data = await response.json()
                 items = data.get("result", {}).get("items", [])
-                if items[0]['data'] != "0x":
+                if items and items[0].get('data') != "0x":
                     item = items[0]
                     token_address = item.get("address", "").lower()
 
@@ -66,18 +46,23 @@ async def fetch_internal_payment(transaction_hash: str) -> (float, str):
     return None, None
 
 
-async def fetch_exchange_rate(token_symbol: str) -> float:
-    token_param = token_symbol.lower()
-    url = f"https://exchange-rate.skymavis.com/{token_param}"
+async def get_payment_details(transaction_hash: str) -> dict:
+    multi_send_from = "0x21a0a1c081dc2f3e48dc391786f53035f85ce0bc"
+    multi_send_to = "0x8014fd2b1089f3a8f078bb88f3ecb9055a4639ab"
+    url_internal = f"https://skynet-api.roninchain.com/ronin/explorer/v2/txs/{transaction_hash}/internal_txs?offset=0&limit=1"
+
     async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
+        async with session.get(url_internal) as response:
             if response.status == 200:
                 data = await response.json()
-                return data.get("usd", 0.0)
-    return 0.0
+                items = data.get("result", {}).get("items", [])
+                if items:
+                    first_item = items[0]
+                    if (first_item.get("from", "").lower() == multi_send_from and
+                            first_item.get("to", "").lower() == multi_send_to):
+                        payments = await get_multi_payment_details(transaction_hash)
+                        return {"multi": True, "payments": payments}
 
-
-async def get_payment_details(transaction_hash: str) -> dict:
     amount, token_symbol = await fetch_internal_payment(transaction_hash)
     if amount and token_symbol:
         rate = await fetch_exchange_rate(token_symbol)
