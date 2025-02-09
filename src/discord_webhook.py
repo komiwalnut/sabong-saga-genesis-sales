@@ -4,14 +4,13 @@ from src.config import DISCORD_WEBHOOK_URL
 
 
 async def send_discord_notification(sale):
+    token_id = sale["assets"][0]["token"]["tokenId"]
+    cdn_image = sale["assets"][0]["token"]['cdnImage']
     nft_details = sale['nft_details']
     payment_details = sale['payment_details']
 
-    token_id = nft_details['tokenId']
-    cdn_image = nft_details['cdnImage']
-
     amount = payment_details['amount']
-    token = payment_details['token']
+    token = payment_details['tokenSymbol']
     usd_value = payment_details['usd_value']
     payment_info = f"{str(float(amount)).rstrip('0').rstrip('.')} {token} (~${str(float(usd_value)).rstrip('0').rstrip('.')})"
 
@@ -22,12 +21,12 @@ async def send_discord_notification(sale):
         },
         "title": f"Chicken #{token_id}",
         "url": f"https://marketplace.skymavis.com/collections/sabong-saga-genesis/{token_id}",
-        "description": f"[View Transaction](https://app.roninchain.com/tx/{sale['transactionHash']})",
+        "description": f"[View Transaction](https://app.roninchain.com/tx/{sale['txHash']})",
         "color": 16514353,
         "fields": [
             {"name": "Price", "value": payment_info, "inline": True},
-            {"name": "Seller", "value": f"[{sale['from']}](https://marketplace.skymavis.com/account/{sale['seller']})", "inline": True},
-            {"name": "Buyer", "value": f"[{sale['to']}](https://marketplace.skymavis.com/account/{sale['buyer']})", "inline": True},
+            {"name": "Seller", "value": f"[{sale['maker']}](https://marketplace.skymavis.com/account/{sale['seller']})", "inline": True},
+            {"name": "Buyer", "value": f"[{sale['matcher']}](https://marketplace.skymavis.com/account/{sale['buyer']})", "inline": True},
         ],
         "thumbnail": {"url": cdn_image},
         "timestamp": datetime.now(timezone.utc).isoformat()

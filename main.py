@@ -5,10 +5,9 @@ import collections
 
 from src.cache import load_cache, save_cache
 from src.fetch_sales import fetch_sales
-from src.fetch_nft_details import fetch_nft_details
+from src.payment_details import get_payment_details
 from src.rns_lookup import check_rns
 from src.discord_webhook import send_discord_notification
-from src.payment_details import get_payment_details
 
 CHECK_INTERVAL = 60
 
@@ -29,81 +28,40 @@ async def main():
 
     while True:
         sales = await fetch_sales()
-        new_sales = [sale for sale in sales if sale["transactionHash"] not in cached_sales]
-        new_sales.sort(key=lambda sale: int(sale["blockNumber"]))
+        new_sales = [sale for sale in sales if sale["txHash"] not in cached_sales]
+        new_sales.sort(key=lambda sale: int(sale["timestamp"]))
 
-        sales_by_tx = collections.defaultdict(list)
         for sale in new_sales:
-            sales_by_tx[sale["transactionHash"]].append(sale)
+            payment_details = await get_payment_details(sale)
+            sale["payment_details"] = payment_details
 
-        for tx_hash, sales_group in sales_by_tx.items():
-            payment_details = await get_payment_details(tx_hash)
-            if not payment_details:
-                continue
+            sale["nft_details"] = sale["assets"][0]["token"]
 
-            if payment_details.get("multi"):
-                payments = payment_details.get("payments", [])
-                sales_group = list(reversed(sales_group))
-                for idx, sale in enumerate(sales_group):
+            buyer_address = sale["matcher"]
+            seller_address = sale["maker"]
+            sale["buyer"] = buyer_address
+            sale["seller"] = seller_address
 
-                    sale["payment_details"] = payments[idx] if idx < len(payments) else {}
-                    nft_details = await fetch_nft_details(sale["tokenId"])
+            buyer_rns = await check_rns(buyer_address)
+            seller_rns = await check_rns(seller_address)
+            sale["matcher"] = buyer_rns if buyer_rns else truncate_address(buyer_address)
+            sale["maker"] = seller_rns if seller_rns else truncate_address(seller_address)
 
-                    buyer_address = sale["to"]
-                    seller_address = sale["from"]
-                    sale["buyer"] = buyer_address
-                    sale["seller"] = seller_address
+            await send_discord_notification(sale)
 
-                    buyer_rns = await check_rns(buyer_address)
-                    seller_rns = await check_rns(seller_address)
-                    sale["to"] = buyer_rns if buyer_rns else truncate_address(buyer_address)
-                    sale["from"] = seller_rns if seller_rns else truncate_address(seller_address)
-                    sale["nft_details"] = nft_details
+            log_message = (
+                f"TokenID: {sale["assets"][0]["token"]["tokenId"]}, "
+                f"Timestamp: {sale['timestamp']}, "
+                f"TxHash: {sale['txHash']}, "
+                f"Buyer: {sale['matcher']}, "
+                f"Seller: {sale['maker']}, "
+                f"DateTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, "
+                f"Price: {sale['payment_details']}"
+            )
+            logging.info(log_message)
+            await asyncio.sleep(0.5)
 
-                    await send_discord_notification(sale)
-
-                    log_message = (
-                        f"TokenID: {sale['tokenId']}, "
-                        f"BlockNumber: {sale['blockNumber']}, "
-                        f"TransactionHash: {sale['transactionHash']}, "
-                        f"Buyer: {sale['to']}, "
-                        f"Seller: {sale['from']}, "
-                        f"DateTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, "
-                        f"Price: {sale['payment_details']}"
-                    )
-                    logging.info(log_message)
-                    await asyncio.sleep(0.5)
-            else:
-                for sale in sales_group:
-                    sale["payment_details"] = payment_details
-                    nft_details = await fetch_nft_details(sale["tokenId"])
-
-                    buyer_address = sale["to"]
-                    seller_address = sale["from"]
-                    sale["buyer"] = buyer_address
-                    sale["seller"] = seller_address
-
-                    buyer_rns = await check_rns(buyer_address)
-                    seller_rns = await check_rns(seller_address)
-                    sale["to"] = buyer_rns if buyer_rns else truncate_address(buyer_address)
-                    sale["from"] = seller_rns if seller_rns else truncate_address(seller_address)
-                    sale["nft_details"] = nft_details
-
-                    await send_discord_notification(sale)
-
-                    log_message = (
-                        f"TokenID: {sale['tokenId']}, "
-                        f"BlockNumber: {sale['blockNumber']}, "
-                        f"TransactionHash: {sale['transactionHash']}, "
-                        f"Buyer: {sale['to']}, "
-                        f"Seller: {sale['from']}, "
-                        f"DateTime: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}, "
-                        f"Price: {sale['payment_details']}"
-                    )
-                    logging.info(log_message)
-                    await asyncio.sleep(0.5)
-
-            cached_sales.append(tx_hash)
+            cached_sales.append(sale["txHash"])
 
         await save_cache(cached_sales)
         await asyncio.sleep(CHECK_INTERVAL)

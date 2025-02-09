@@ -1,13 +1,5 @@
 import aiohttp
-
-
-async def hex_to_decimal(hex_str: str, divisor: float = 1e18) -> float:
-    try:
-        value_int = int(hex_str, 16)
-        return value_int / divisor
-    except Exception as e:
-        print(f"Error converting hex {hex_str}: {e}")
-        return 0.0
+from src.config import SM_KEY
 
 
 async def get_token_info(token_address: str) -> (str, float):
