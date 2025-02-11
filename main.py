@@ -37,8 +37,13 @@ async def main():
 
             sale["nft_details"] = sale["assets"][0]["token"]
 
-            buyer_address = sale["matcher"]
-            seller_address = sale["maker"]
+            if sale["orderKind"] == 2:
+                buyer_address = sale["maker"]
+                seller_address = sale["matcher"]
+            else:
+                buyer_address = sale["matcher"]
+                seller_address = sale["maker"]
+
             sale["buyer"] = buyer_address
             sale["seller"] = seller_address
 
@@ -50,7 +55,7 @@ async def main():
             await send_discord_notification(sale)
 
             log_message = (
-                f"TokenID: {sale["assets"][0]["token"]["tokenId"]}, "
+                f"TokenID: {sale['assets'][0]['token']['tokenId']}, "
                 f"Timestamp: {sale['timestamp']}, "
                 f"TxHash: {sale['txHash']}, "
                 f"Buyer: {sale['matcher']}, "
