@@ -18,6 +18,7 @@ async def fetch_sales():
           paymentToken
           realPrice
           txHash
+          orderKind
           assets {
             address
             token {
