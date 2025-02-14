@@ -37,7 +37,7 @@ async def main():
 
             sale["nft_details"] = sale["assets"][0]["token"]
 
-            if sale["orderKind"] == 2:
+            if sale["orderKind"] == 2 or sale["orderKind"] == 0:
                 buyer_address = sale["maker"]
                 seller_address = sale["matcher"]
             else:
