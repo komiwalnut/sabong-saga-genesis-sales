@@ -1,17 +1,27 @@
 import aiohttp
+import logging
 from datetime import datetime, timezone
 from src.config import DISCORD_WEBHOOK_URL
 
 
 async def send_discord_notification(sale):
+    payment_details = sale.get('payment_details', {})
+    usd_value = payment_details.get('usd_value', '0')
+    try:
+        usd_float = float(str(usd_value).replace(',', ''))
+        if usd_float <= 0:
+            logging.warning(f"Skipping Discord notification for sale with $0 value: {sale.get('txHash')}")
+            return False
+    except (ValueError, TypeError):
+        logging.error(f"Invalid USD value when sending notification: {usd_value}")
+        return False
+
     token_id = sale["assets"][0]["token"]["tokenId"]
     cdn_image = sale["assets"][0]["token"]['cdnImage']
     nft_details = sale['nft_details']
-    payment_details = sale['payment_details']
-
+    
     amount = payment_details['amount']
     token = payment_details['tokenSymbol']
-    usd_value = payment_details['usd_value']
     payment_info = f"{str(float(amount)).rstrip('0').rstrip('.')} {token} (~${str(float(usd_value)).rstrip('0').rstrip('.')})"
 
     embed = {
@@ -82,6 +92,14 @@ async def send_discord_notification(sale):
             "inline": True
         })
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]}) as response:
-            return response.status == 204
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(DISCORD_WEBHOOK_URL, json={"embeds": [embed]}) as response:
+                success = response.status == 204
+                if not success:
+                    response_text = await response.text()
+                    logging.error(f"Discord API error: Status {response.status}, Response: {response_text}")
+                return success
+    except Exception as e:
+        logging.error(f"Exception when sending Discord notification: {str(e)}")
+        return False
